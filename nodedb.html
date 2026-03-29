@@ -183,20 +183,25 @@ function fvClick(span,i,k,ak,ai,sk){
 
 function showLabelPicker(i){
   const o=document.createElement('div');o.className='modal-overlay';
+  const hasLabels=labels.length>0;
   let lhtml=labels.map(l=>'<option value="'+esc(l)+'">'+esc(l)+'</option>').join('');
-  o.innerHTML='<div class="modal"><p>Select Node Label</p>'
-    +'<select id="lp">'+lhtml+'<option value="__custom">Custom...</option></select>'
-    +'<input id="lc" placeholder="Custom label" style="display:none">'
+  o.innerHTML='<div class="modal"><p>Set Node Label</p>'
+    +(hasLabels?'<select id="lp">'+lhtml+'<option value="__custom">+ New label...</option></select>':'')
+    +'<input id="lc" placeholder="Enter label name"'+(hasLabels?' style="display:none"':'')+'>'
     +'<div class="modal-btns"><button onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button>'
     +'<button class="confirm" id="ls" style="color:var(--gn);border-color:rgba(79,209,165,.3)">Set</button></div></div>';
   document.body.appendChild(o);
   const sel=o.querySelector('#lp'),ci=o.querySelector('#lc');
-  if(nodes[i].label)sel.value=nodes[i].label;
-  sel.onchange=()=>{ci.style.display=sel.value==='__custom'?'block':'none';};
+  if(sel){
+    if(nodes[i].label&&labels.includes(nodes[i].label))sel.value=nodes[i].label;
+    sel.onchange=()=>{ci.style.display=sel.value==='__custom'?'block':'none';if(sel.value==='__custom')ci.focus();};
+  }
+  if(!hasLabels)ci.focus();
   o.querySelector('#ls').onclick=()=>{
-    let v=sel.value==='__custom'?ci.value.trim():sel.value;
-    if(v){nodes[i].label=v;if(sel.value==='__custom'&&!labels.includes(v)){labels.push(v);}save();render();renderSidebar();}o.remove();};
+    let v=(!hasLabels||!sel||sel.value==='__custom')?ci.value.trim():sel.value;
+    if(v){nodes[i].label=v;if(!labels.includes(v))labels.push(v);save();render();renderSidebar();}o.remove();};
   o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+  ci.onkeydown=e=>{if(e.key==='Enter')o.querySelector('#ls').click();};
 }
 
 function addNode(){
