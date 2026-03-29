@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Network Node DB</title>
+<style>
+:root{
+  --bg:#1c1e26;--card:#232530;--card2:#282a36;
+  --b:#2e3040;--bh:#3d4058;
+  --t:#b0b4c0;--td:#737891;--tm:#565b78;
+  --ac:#7ba4d4;--pu:#a68dc8;--gn:#7bbf9e;--rd:#c97070;--am:#c4a46a;
+  --f:#272937;--r:8px
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,Inter,system-ui,sans-serif;background:var(--bg);color:var(--t);font-size:13px;line-height:1.4;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--card);border-bottom:1px solid var(--b);flex-shrink:0;z-index:10}
+.topbar h1{font-size:14px;font-weight:600;color:var(--td);display:flex;align-items:center;gap:6px}
+.topbar h1 b{color:var(--t)}
+.toolbar{display:flex;gap:6px;align-items:center}
+.toolbar input{background:var(--f);border:1px solid var(--b);color:var(--t);padding:5px 10px;border-radius:var(--r);font-size:12px;width:150px;transition:border .2s}
+.toolbar input:focus{border-color:var(--ac);outline:none}
+
+button{font-family:inherit;background:var(--f);color:var(--td);border:1px solid var(--b);padding:4px 10px;border-radius:var(--r);cursor:pointer;font-size:11px;font-weight:500;transition:all .15s}
+button:hover{border-color:var(--bh);color:var(--t)}
+.btn-add{color:var(--gn);border-color:rgba(79,209,165,.18);display:none}.btn-add:hover{background:rgba(79,209,165,.06)}
+.admin-active .btn-add{display:inline}
+.sb-add{width:100%;border-radius:0;border-left:none;border-right:none;border-bottom:none;padding:10px;font-size:12px;flex-shrink:0;background:var(--f);color:var(--gn);border-top:1px solid var(--b);font-weight:600;display:none!important}
+.admin-active .sb-add{display:block!important}
+.btn-admin{color:var(--tm)}.btn-admin.active{color:var(--rd);border-color:rgba(232,98,106,.25)}
+.btn-export{color:var(--pu);border-color:rgba(157,124,244,.15)}
+.btn-import{color:var(--ac);border-color:rgba(91,141,239,.15)}
+.btn-more{font-size:10px;padding:2px 8px;border-radius:3px;color:var(--td);border:1px solid var(--b);background:none;display:none;grid-column:1/-1;justify-self:end;margin-top:2px}
+.admin-active .btn-more{display:block}
+.btn-del{background:none;border:none;color:var(--tm);font-size:13px;padding:0 2px;display:none}.btn-del:hover{color:var(--rd)}
+.admin-active .btn-del{display:inline}
+
+.layout{display:flex;flex:1;overflow:hidden}
+
+/* Sidebar */
+.sidebar{width:200px;min-width:200px;background:var(--card);border-right:1px solid var(--b);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-header{padding:8px 10px;border-bottom:1px solid var(--b);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--td);display:flex;justify-content:space-between;align-items:center}
+.sb-list{overflow-y:auto;flex:1;padding:4px 0}
+.sb-item{padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:6px;border-left:3px solid transparent;transition:all .1s;font-size:12px}
+.sb-item:hover{background:var(--f)}
+.sb-item.active{background:var(--f);border-left-color:var(--ac);color:var(--t)}
+.sb-item .sb-label{font-size:9px;padding:1px 4px;border-radius:3px;background:var(--b);color:var(--am);font-weight:600;flex-shrink:0}
+.sb-item .sb-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.sb-all{padding:6px 10px;cursor:pointer;font-size:11px;color:var(--td);border-bottom:1px solid var(--b);font-weight:600}
+.sb-all:hover,.sb-all.active{color:var(--ac);background:var(--f)}
+
+.main{flex:1;overflow-y:auto;padding:12px 16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:12px}
+
+.node{background:var(--card);border:1px solid var(--b);border-radius:var(--r);display:flex;flex-direction:column;transition:border .15s}
+.node:hover{border-color:var(--bh)}
+.node-header{display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:linear-gradient(135deg,var(--card2),var(--card));border-bottom:1px solid var(--b);border-radius:var(--r) var(--r) 0 0;gap:8px}
+.node-name{font-weight:600;color:var(--ac);font-size:13px;cursor:default;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-active .node-name{cursor:text}
+.node-label-tag{font-size:9px;padding:2px 6px;border-radius:3px;background:var(--b);color:var(--am);font-weight:700;flex-shrink:0;cursor:default}
+.admin-active .node-label-tag{cursor:pointer}
+.admin-active .node-label-tag:hover{background:var(--bh)}
+.node-body{padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+
+.sec{display:flex;align-items:flex-start;gap:8px}
+.sec-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--am);min-width:40px;max-width:40px;padding-top:4px;flex-shrink:0}
+.sec-fields{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;min-width:0}
+
+.row{display:flex;align-items:center;min-height:22px;min-width:0}
+.row label{font-size:10px;color:var(--td);min-width:30px;flex-shrink:0;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+.fwrap{position:relative;display:flex;align-items:center;flex:1;min-width:0}
+.fv{cursor:pointer;padding:2px 18px 2px 5px;border-radius:3px;min-width:0;border:1px solid transparent;font-family:'SF Mono',Consolas,monospace;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:var(--f);color:var(--t);transition:border .15s;min-height:22px;flex:1}
+.fv:empty::before{content:'\22EF';color:var(--tm);font-size:12px;opacity:.4}
+.fv:hover{border-color:var(--b)}
+.admin-active .fv{cursor:text}
+.fv.editing{background:var(--bg);border-color:var(--ac);outline:none;overflow:auto;text-overflow:clip}
+.cp{position:absolute;right:2px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--tm);width:13px;height:13px;user-select:none;opacity:0;transition:opacity .12s}
+.fwrap:hover .cp,.sctp-row:hover .cp{opacity:.5}
+.cp:hover{color:var(--ac);opacity:1!important}
+.cp.copied{color:var(--gn);opacity:1!important}
+.cp svg{width:12px;height:12px}
+.row-full{grid-column:1/-1}
+.sec-sep{border:none;border-top:1px solid var(--b);margin:0}
+
+.rm-btn{cursor:pointer;color:var(--tm);font-size:11px;padding:0 3px;user-select:none;display:none;transition:opacity .12s}
+.admin-active .rm-btn{display:inline}
+.rm-btn:hover{color:var(--rd)}
+.note-row{display:flex;flex-direction:column;gap:4px;grid-column:1/-1;background:var(--f);border:1px solid var(--b);border-radius:4px;padding:6px 8px}
+.note-title{font-family:'SF Mono',Consolas,monospace;font-size:12px;color:var(--pu);background:none;border:none;padding:0}
+.note-title:hover{border:none}
+.note-body{font-family:'SF Mono',Consolas,monospace;font-size:11px;background:var(--card);border:1px solid var(--b);border-radius:3px;padding:4px 7px;white-space:pre-wrap;word-break:break-all;min-height:36px;cursor:text;color:var(--t);line-height:1.5;transition:border .15s;user-select:text}
+.admin-active .note-body{cursor:text}
+.note-body:hover{border-color:var(--bh)}
+.note-body.editing{border-color:var(--ac);outline:none;background:var(--bg)}
+.note-head{display:flex;align-items:center;gap:4px}
+.note-head .fwrap{flex:1}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px)}
+.modal{background:var(--card);border:1px solid var(--bh);border-radius:var(--r);padding:20px 24px;min-width:270px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.modal p{margin-bottom:14px;font-size:13px;color:var(--t)}
+.modal-btns{display:flex;gap:8px;justify-content:center}
+.modal-btns button{min-width:76px;padding:6px 14px}
+.modal-btns .confirm{color:var(--rd);border-color:rgba(232,98,106,.3)}.modal-btns .confirm:hover{background:rgba(232,98,106,.08)}
+.modal input,.modal select{background:var(--f);border:1px solid var(--b);color:var(--t);padding:6px 10px;border-radius:4px;font-size:12px;width:100%;margin-bottom:10px;font-family:inherit}
+.modal input:focus,.modal select:focus{border-color:var(--ac);outline:none}
+.modal select option{background:var(--card);color:var(--t)}
+.modal .err{color:var(--rd);font-size:11px;margin:-6px 0 8px;display:none}
+.modal .label-list{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;justify-content:center}
+.modal .label-chip{font-size:11px;padding:3px 8px;border-radius:4px;background:var(--f);border:1px solid var(--b);color:var(--am);display:flex;align-items:center;gap:4px}
+.modal .label-chip .chip-x{cursor:pointer;color:var(--tm);font-size:12px}.modal .label-chip .chip-x:hover{color:var(--rd)}
+
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--card2);color:var(--gn);padding:5px 16px;border:1px solid var(--b);border-radius:var(--r);display:none;z-index:99;font-size:12px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>⬡ <b>NodeDB</b></h1>
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Filter..." oninput="render()">
+    <button class="btn-add" onclick="addNode()">+ Node</button>
+    <button class="btn-admin" id="adminBtn" onclick="toggleAdmin()">🔒 Admin</button>
+    <button class="btn-export" onclick="exportData()">Export</button>
+    <button class="btn-import" onclick="document.getElementById('imp').click()">Import</button>
+    <input type="file" id="imp" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+<div class="layout">
+  <div class="sidebar">
+    <div class="sb-header">Nodes</div>
+    <div class="sb-all active" onclick="filterLabel(null)">All Nodes</div>
+    <div class="sb-list" id="sbList"></div>
+    <button class="btn-add sb-add" onclick="addNode()">+ New Node</button>
+  </div>
+  <div class="main"><div class="grid" id="grid"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const COPY='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7"/></svg>';
+const DEFAULT_LABELS=[];
+
+const SEC=[
+  {s:'Info',f:[{k:'hostname',l:'Host'}]},
+  {s:'Net',f:[{k:'ip',l:'IP'},{k:'port',l:'Port'}]},
+  {s:'SSH',f:[{k:'ssh_user',l:'User'},{k:'ssh_pass',l:'Pass'}]},
+  {s:'GUI',f:[{k:'gui_url',l:'URL',full:1},{k:'ui_user',l:'User'},{k:'ui_pass',l:'Pass'}]},
+  {s:'SS7',f:[{k:'pc',l:'PC'},{k:'ssn',l:'SSN'}]}
+];
+
+let nodes=JSON.parse(localStorage.getItem('nndb')||'[]');
+let labels=JSON.parse(localStorage.getItem('nndb_labels')||'null')||[...DEFAULT_LABELS];
+let isAdmin=false, activeFilter=null;
+
+function save(){localStorage.setItem('nndb',JSON.stringify(nodes));localStorage.setItem('nndb_labels',JSON.stringify(labels))}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',1200)}
+function copyVal(t,b){navigator.clipboard.writeText(t||'').then(()=>{b.classList.add('copied');b.innerHTML=CHECK;setTimeout(()=>{b.classList.remove('copied');b.innerHTML=COPY},700)});toast('Copied')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function makeEditable(s,i,k,ak,ai,sk){
+  if(!isAdmin)return;
+  s.contentEditable=true;s.classList.add('editing');s.focus();
+  const r=document.createRange();r.selectNodeContents(s);const sl=window.getSelection();sl.removeAllRanges();sl.addRange(r);
+  const done=()=>{s.contentEditable=false;s.classList.remove('editing');const v=s.textContent.trim();
+    if(ak!==undefined&&sk)nodes[i][ak][ai][sk]=v;else if(ak!==undefined)nodes[i][ak][ai]=v;else nodes[i][k]=v;save();renderSidebar();};
+  s.onblur=done;s.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();s.blur();}};
+}
+function makeEditableBlock(el,i,ak,ai,sk){
+  if(!isAdmin)return;
+  el.contentEditable=true;el.classList.add('editing');el.focus();
+  el.onblur=()=>{el.contentEditable=false;el.classList.remove('editing');nodes[i][ak][ai][sk]=el.textContent;save();};
+}
+
+function fvClick(span,i,k,ak,ai,sk){
+  if(isAdmin){
+    if(k==='label')return showLabelPicker(i);
+    return makeEditable(span,i,k,ak,ai,sk);
+  }
+  const v=ak!==undefined?(sk?nodes[i][ak][ai][sk]:nodes[i][ak][ai]):nodes[i][k];
+  const cp=span.parentElement.querySelector('.cp');
+  if(cp)copyVal(v||'',cp);
+}
+
+function showLabelPicker(i){
+  const o=document.createElement('div');o.className='modal-overlay';
+  let lhtml=labels.map(l=>'<option value="'+esc(l)+'">'+esc(l)+'</option>').join('');
+  o.innerHTML='<div class="modal"><p>Select Node Label</p>'
+    +'<select id="lp">'+lhtml+'<option value="__custom">Custom...</option></select>'
+    +'<input id="lc" placeholder="Custom label" style="display:none">'
+    +'<div class="modal-btns"><button onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button>'
+    +'<button class="confirm" id="ls" style="color:var(--gn);border-color:rgba(79,209,165,.3)">Set</button></div></div>';
+  document.body.appendChild(o);
+  const sel=o.querySelector('#lp'),ci=o.querySelector('#lc');
+  if(nodes[i].label)sel.value=nodes[i].label;
+  sel.onchange=()=>{ci.style.display=sel.value==='__custom'?'block':'none';};
+  o.querySelector('#ls').onclick=()=>{
+    let v=sel.value==='__custom'?ci.value.trim():sel.value;
+    if(v){nodes[i].label=v;if(sel.value==='__custom'&&!labels.includes(v)){labels.push(v);}save();render();renderSidebar();}o.remove();};
+  o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+}
+
+function addNode(){
+  nodes.unshift({name:'New Node',hostname:'',label:'',ip:'',port:'',gui_url:'',ssh_user:'',ssh_pass:'',ui_user:'',ui_pass:'',pc:'',ssn:'',sctp:['',''],notes:[{title:'Note 1',body:''}]});
+  save();render();renderSidebar();
+}
+
+function toggleAdmin(){
+  if(isAdmin){isAdmin=false;updateAdmin();return;}
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML='<div class="modal"><p>Admin Login</p><input id="au" placeholder="Username" autocomplete="off"><input id="ap" type="password" placeholder="Password" autocomplete="off"><div class="err" id="ae">Invalid credentials</div><div class="modal-btns"><button onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="confirm" id="al" style="color:var(--gn);border-color:rgba(79,209,165,.3)">Login</button></div></div>';
+  document.body.appendChild(o);
+  o.querySelector('#al').onclick=()=>{if(o.querySelector('#au').value==='admin'&&o.querySelector('#ap').value==='admin'){isAdmin=true;updateAdmin();o.remove();}else o.querySelector('#ae').style.display='block';};
+  o.querySelector('#ap').onkeydown=e=>{if(e.key==='Enter')o.querySelector('#al').click();};
+  o.addEventListener('click',e=>{if(e.target===o)o.remove();});o.querySelector('#au').focus();
+}
+function updateAdmin(){const b=document.getElementById('adminBtn');b.textContent=isAdmin?'🔓 Admin':'🔒 Admin';b.classList.toggle('active',isAdmin);document.body.classList.toggle('admin-active',isAdmin);}
+
+function showConfirm(m,fn){
+  const o=document.createElement('div');o.className='modal-overlay';
+  o.innerHTML='<div class="modal"><p>'+esc(m)+'</p><div class="modal-btns"><button onclick="this.closest(\'.modal-overlay\').remove()">Cancel</button><button class="confirm" id="mc">Delete</button></div></div>';
+  document.body.appendChild(o);o.querySelector('#mc').onclick=()=>{o.remove();fn();};o.addEventListener('click',e=>{if(e.target===o)o.remove();});
+}
+function delNode(i){showConfirm('Delete "'+nodes[i].name+'"?',()=>{nodes.splice(i,1);save();render();renderSidebar();})}
+function addSctp(i){nodes[i].sctp.push('');save();render();}
+function rmSctp(i,j){nodes[i].sctp.splice(j,1);save();render();}
+function addNote(i){nodes[i].notes.push({title:'New Note',body:''});save();render();}
+function rmNote(i,j){nodes[i].notes.splice(j,1);save();render();}
+
+function filterLabel(lbl){
+  activeFilter=lbl;render();renderSidebar();
+}
+
+function fld(i,l,k,full){
+  const v=nodes[i][k]||'';
+  return '<div class="row'+(full?' row-full':'')+'"><label>'+l+'</label><div class="fwrap"><span class="fv" onclick="fvClick(this,'+i+',\''+k+'\')">'+(v?esc(v):'')+'</span><span class="cp" onclick="copyVal(nodes['+i+'].'+k+',this)">'+COPY+'</span></div></div>';
+}
+
+function renderSidebar(){
+  const sb=document.getElementById('sbList');sb.innerHTML='';
+  // All button
+  document.querySelector('.sb-all').classList.toggle('active',activeFilter===null);
+  // Group by label
+  const grouped={};
+  nodes.forEach((n,i)=>{
+    const lbl=n.label||'Unlabeled';
+    if(!grouped[lbl])grouped[lbl]=[];
+    grouped[lbl].push({n,i});
+  });
+  // Sort labels: known first, then others
+  const order=[...labels,'Unlabeled'];
+  const sorted=Object.keys(grouped).sort((a,b)=>{const ai=order.indexOf(a),bi=order.indexOf(b);return (ai<0?999:ai)-(bi<0?999:bi);});
+  sorted.forEach(lbl=>{
+    grouped[lbl].forEach(({n,i})=>{
+      const el=document.createElement('div');el.className='sb-item'+(activeFilter===null||activeFilter===lbl?' ':' ');
+      if(activeFilter===lbl)el.style.display='';
+      el.innerHTML=(n.label?'<span class="sb-label">'+esc(n.label)+'</span>':'')+'<span class="sb-name">'+esc(n.name||'Unnamed')+'</span>';
+      el.onclick=()=>{filterLabel(lbl);document.querySelector('.node-idx-'+i)?.scrollIntoView({behavior:'smooth',block:'start'});};
+      sb.appendChild(el);
+    });
+  });
+}
+
+function render(){
+  const q=document.getElementById('search').value.toLowerCase(),g=document.getElementById('grid');g.innerHTML='';
+  nodes.forEach((n,i)=>{
+    if(!n.sctp)n.sctp=['',''];if(!n.notes)n.notes=[];if(!n.gui_url)n.gui_url='';
+    if(!n.hostname)n.hostname='';if(!n.label)n.label='';
+    // Filter
+    if(activeFilter&&(n.label||'Unlabeled')!==activeFilter)return;
+    const vals=Object.values(n).flat().map(x=>typeof x==='object'?Object.values(x).join(' '):x).join(' ').toLowerCase();
+    if(q&&!vals.includes(q))return;
+
+    let h='<div class="node-header">'
+      +'<span class="node-name" onclick="fvClick(this,'+i+',\'name\')">'+esc(n.name||'Unnamed')+'</span>'
+      +'<span class="node-label-tag" onclick="if(isAdmin)showLabelPicker('+i+')">'+(n.label?esc(n.label):'⋯')+'</span>'
+      +'<button class="btn-del" onclick="delNode('+i+')">✕</button></div><div class="node-body">';
+
+    SEC.forEach((s,si)=>{
+      if(si)h+='<hr class="sec-sep">';
+      h+='<div class="sec"><div class="sec-tag">'+s.s+'</div><div class="sec-fields">';
+      s.f.forEach(f=>{h+=fld(i,f.l,f.k,f.full);});
+      h+='</div></div>';
+    });
+
+    h+='<hr class="sec-sep"><div class="sec"><div class="sec-tag">SCTP</div><div class="sec-fields">';
+    n.sctp.forEach((ip,j)=>{
+      h+='<div class="row sctp-row"><label>IP'+(j+1)+'</label><div class="fwrap"><span class="fv" onclick="fvClick(this,'+i+',null,\'sctp\','+j+')">'+(ip?esc(ip):'')+'</span><span class="cp" onclick="copyVal(nodes['+i+'].sctp['+j+'],this)">'+COPY+'</span></div>'+(n.sctp.length>1?'<span class="rm-btn" onclick="rmSctp('+i+','+j+')">✕</span>':'')+'</div>';
+    });
+    h+='<button class="btn-more" onclick="addSctp('+i+')">+ Add more</button></div></div>';
+
+    h+='<hr class="sec-sep"><div class="sec"><div class="sec-tag">Notes</div><div class="sec-fields">';
+    n.notes.forEach((nt,j)=>{
+      h+='<div class="note-row"><div class="note-head"><div class="fwrap"><span class="fv note-title" onclick="fvClick(this,'+i+',null,\'notes\','+j+',\'title\')">'+esc(nt.title||'')+'</span></div><span class="rm-btn" onclick="rmNote('+i+','+j+')">✕</span></div><div class="note-body" onclick="if(isAdmin){makeEditableBlock(this,'+i+',\'notes\','+j+',\'body\')}">'+esc(nt.body||'')+'</div></div>';
+    });
+    h+='<button class="btn-more" onclick="addNote('+i+')">+ Add more</button></div></div></div>';
+
+    const c=document.createElement('div');c.className='node node-idx-'+i;c.innerHTML=h;g.appendChild(c);
+  });
+}
+
+function exportData(){const a=document.createElement('a');a.href='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({nodes,labels},null,2));a.download='network-nodes.json';a.click();}
+function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);if(Array.isArray(d)){nodes=d;save();render();renderSidebar();toast('Imported '+d.length+' nodes');}else if(d.nodes){nodes=d.nodes;if(d.labels)labels=d.labels;save();render();renderSidebar();toast('Imported '+nodes.length+' nodes');}}catch(err){toast('Invalid JSON');}};r.readAsText(f);e.target.value='';}
+if('serviceWorker' in navigator){const sw="self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));";navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))).catch(()=>{});}
+render();renderSidebar();
+</script>
+</body>
+</html>
